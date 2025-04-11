@@ -86,14 +86,113 @@ version (DigitalMars)
         return core.bitop.bswap(value);
     }
 
-    uint  __builtin__popcount()(ulong value)
+    // Lazily imported on first use
+    private alias c_long = imported!"core.stdc.config".c_long;
+    private alias c_ulong = imported!"core.stdc.config".c_ulong;
+
+    // GCC/clang popcount
+    int __builtin_popcount()(uint value)
     {
         import core.bitop;
         return core.bitop._popcnt(value);
     }
 
-    // Lazily imported on first use
-    private alias c_long = imported!"core.stdc.config".c_long;
+    int __builtin_popcountl()(c_ulong value)
+    {
+        import core.bitop;
+        return core.bitop._popcnt(value);
+    }
+
+    int __builtin_popcountll()(ulong value)
+    {
+        import core.bitop;
+        return core.bitop.popcnt(value);
+    }
+
+    // MSVC popcount
+    ushort __popcnt16()(ushort value)
+    {
+        import core.bitop;
+        return cast(ushort)core.bitop.popcnt(value);
+    }
+
+    uint __popcnt()(uint value)
+    {
+        import core.bitop;
+        return cast(uint)core.bitop.popcnt(value);
+    }
+
+    ulong __popcnt64()(ulong value)
+    {
+        import core.bitop;
+        return cast(ulong)core.bitop.popcnt(value);
+    }
+
+    // GCC/clang lzcnt, tzcnt
+    int __builtin_clz()(uint value)
+    {
+        import core.bitop;
+        return cast(int)(8*value.sizeof - 1 - core.bitop.bsr(value));
+    }
+
+    int __builtin_clzl()(c_ulong value)
+    {
+        import core.bitop;
+        return cast(int)(8*value.sizeof - 1 - core.bitop.bsr(value));
+    }
+
+    int __builtin_clzll()(ulong value)
+    {
+        import core.bitop;
+        return cast(int)(8*value.sizeof - 1 - core.bitop.bsr(value));
+    }
+
+    int __builtin_ctz()(uint value)
+    {
+        import core.bitop;
+        return core.bitop.bsf(value);
+    }
+
+    int __builtin_ctzl()(c_ulong value)
+    {
+        import core.bitop;
+        return core.bitop.bsf(value);
+    }
+
+    int __builtin_ctzll()(ulong value)
+    {
+        import core.bitop;
+        return core.bitop.bsf(value);
+    }
+
+    // MSVC bsr/bsf
+    ubyte _BitScanReverse()(c_ulong* Index, c_ulong Mask)
+    {
+        import core.bitop;
+        *Index = core.bitop.bsr(Mask);
+        return cast(ubyte)cast(bool)(Mask);
+    }
+
+    ubyte _BitScanReverse64()(c_ulong* Index, ulong Mask)
+    {
+        import core.bitop;
+        *Index = core.bitop.bsr(Mask);
+        return cast(ubyte)cast(bool)(Mask);
+    }
+
+    ubyte _BitScanForward()(c_ulong* Index, c_ulong Mask)
+    {
+        import core.bitop;
+        *Index = core.bitop.bsf(Mask);
+        return cast(ubyte)cast(bool)(Mask);
+    }
+
+    ubyte _BitScanForward64()(c_ulong* Index, ulong Mask)
+    {
+        import core.bitop;
+        *Index = core.bitop.bsf(Mask);
+        return cast(ubyte)cast(bool)(Mask);
+    }
 
     // Stub these out to no-ops
     int    __builtin_constant_p(T)(T exp) { return 0; } // should be something like __traits(compiles, enum X = expr)
