@@ -34,6 +34,7 @@ import dmd.typesem : size;
 final class CParser(AST) : Parser!AST
 {
     AST.Dsymbols* symbols;      // symbols declared in current scope
+    AST.Dsymbols* rootSymbols;  // symbols declared at top level
 
     bool addFuncName;           /// add declaration of __func__ to function symbol table
     bool importBuiltins;        /// seen use of C compiler builtins, so import __importc_builtins;
@@ -68,6 +69,10 @@ final class CParser(AST) : Parser!AST
      * of Dsymbols returned by parseModule().
      */
     OutBuffer* defines;
+
+    Array!Token libs; // libs from #pragma comment(lib, ...)
+                      // Should be string tokens.
+                      // Not StringExp directly due to nothrow.
 
     extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,
                             ErrorSink errorSink,
@@ -115,12 +120,23 @@ final class CParser(AST) : Parser!AST
     {
         //printf("cparseTranslationUnit()\n");
         symbols = new AST.Dsymbols();
+        rootSymbols = symbols;
         typedefTab.push(null);  // C11 6.2.1-3 symbol table for "file scope"
         while (1)
         {
             if (token.value == TOK.endOfFile)
             {
+                assert(symbols is rootSymbols);
                 addDefines();   // convert #define's to Dsymbols
+                assert(symbols is rootSymbols);
+
+                foreach(lib; libs[])
+                {
+                    auto exprs = new AST.Expressions(1);
+                    (*exprs)[0] = new AST.StringExp(lib.loc, lib.ustring[0..lib.len]);
+                    rootSymbols.push(new AST.PragmaDeclaration(lib.loc, Id.lib, exprs, null));
+                }
+                libs.length = 0;
 
                 // wrap the symbols in `extern (C) { symbols }`
                 auto wrap = new AST.Dsymbols();
@@ -5692,6 +5708,8 @@ final class CParser(AST) : Parser!AST
             return pragmaPack(loc, true);
         if (n.value == TOK.identifier && n.ident == Id.attribute)
             return pragmaAttribute(loc);
+        if (n.value == TOK.identifier && n.ident == Id.comment)
+            return pragmaComment(loc);
         if (n.value != TOK.endOfLine)
             skipToNextLine();
     }
@@ -6016,6 +6034,50 @@ final class CParser(AST) : Parser!AST
         error(loc, "unrecognized `#pragma attribute(%s)`", n.toChars());
         if (n.value != TOK.endOfLine)
             skipToNextLine();
+    }
+
+
+    /*********
+     * #pragma comment( comment-type [ , "comment-string" ] )
+     * Places a comment record into an object file or executable file.
+     */
+    private void pragmaComment(Loc startloc)
+    {
+        Token n;
+        Lexer.scan(&n);
+        if(n.value != TOK.leftParenthesis)
+        {
+            error(startloc, "left parenthesis expected to follow `#pragma comment`");
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+            return;
+        }
+
+        void closingParen()
+        {
+            if (n.value != TOK.rightParenthesis)
+                error(startloc, "right parenthesis expected to close `#pragma comment(`");
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+        }
+
+        Lexer.scan(&n);
+        Identifier comment_type;
+        if (n.value == TOK.identifier)
+            comment_type = n.ident;
+        else
+            return skipToNextLine();
+
+        Lexer.scan(&n);
+        string s;
+        if (n.value == TOK.comma)
+        {
+            Lexer.scan(&n);
+            if(n.value == TOK.string_ && comment_type == Id.lib)
+                libs.push(n);
+            Lexer.scan(&n);
+        }
+        closingParen();
     }
 
     //}

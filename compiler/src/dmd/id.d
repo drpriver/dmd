@@ -532,7 +532,9 @@ immutable Msgtable[] msgtable =
     { "define" },
     { "undef" },
     { "ident" },
+    // C pragmas
     { "packed" },
+    { "comment" },
 ];
 
 
