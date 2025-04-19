@@ -4026,6 +4026,10 @@ public:
     bool hasInlineAsm(bool v);
     bool hasMultipleReturnExp() const;
     bool hasMultipleReturnExp(bool v);
+    bool cInline() const;
+    bool cInline(bool v);
+    bool used() const;
+    bool used(bool v);
 private:
     uint32_t bitFields;
 public:
@@ -7158,6 +7162,7 @@ private:
     ThreeState rootimports;
 public:
     void* tagSymTab;
+    Array<Dsymbol* > instantiatedInlines;
 private:
     OutBuffer defines;
 public:

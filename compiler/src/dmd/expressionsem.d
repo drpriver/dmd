@@ -1687,6 +1687,13 @@ Lagain:
             return ErrorExp.get();
 
         auto fd = s.isFuncDeclaration();
+        if (fd.cInline && !fd.used)
+        {
+            // Push into the first root module that uses it.
+            // We need at least one definition somewhere.
+            sc._module.instantiatedInlines.push(s);
+            fd.used = true;
+        }
         fd.type = f.type;
         return new VarExp(loc, fd, hasOverloads);
     }

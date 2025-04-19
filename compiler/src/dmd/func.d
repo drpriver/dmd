@@ -142,6 +142,11 @@ private struct FUNCFLAG
     bool hasReturnExp;         /// Has return exp; statement
     bool hasInlineAsm;         /// Has asm{} statement
     bool hasMultipleReturnExp; /// Has multiple return exp; statements
+
+    bool cInline; /// C `inline` semantics, not necessarily inlined or even PINLINE.always
+    /// Whether this function was actually called or otherwise referenced.
+    /// If true, might not be dead code.
+    bool used;
 }
 
 /***********************************************************

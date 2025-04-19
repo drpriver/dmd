@@ -453,6 +453,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.skipCodegen)
         return;
 
+    // Unused C `inline` function, don't generate code.
+    if (fd.cInline && !fd.tookAddressOf && !fd.used)
+        return;
+
     UnitTestDeclaration ud = fd.isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;
@@ -480,15 +484,16 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     assert(fd.semanticRun == PASS.semantic3done);
     assert(fd.ident != Id.empty);
 
-    for (FuncDeclaration fd2 = fd; fd2; )
-    {
-        if (fd2.inNonRoot())
-            return;
-        if (fd2.isNested())
-            fd2 = fd2.toParent2().isFuncDeclaration();
-        else
-            break;
-    }
+    if(!fd.cInline)
+        for (FuncDeclaration fd2 = fd; fd2; )
+        {
+            if (fd2.inNonRoot())
+                return;
+            if (fd2.isNested())
+                fd2 = fd2.toParent2().isFuncDeclaration();
+            else
+                break;
+        }
 
     if (UnitTestDeclaration udp = needsDeferredNested(fd))
     {
@@ -1418,6 +1423,11 @@ private void genObjFile(Module m, bool multiobj)
         auto member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
         toObjFile(member, multiobj);
+    }
+    for (int i = 0; i < m.instantiatedInlines.length; i++)
+    {
+        auto s = m.instantiatedInlines[i];
+        toObjFile(s, multiobj);
     }
 
     if (global.params.cov)

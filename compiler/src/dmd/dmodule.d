@@ -361,6 +361,10 @@ extern (C++) final class Module : Package
     private ThreeState rootimports;
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
 
+    /// Symbols that should be generated in this module's
+    /// object file rather than where they are defined.
+    Dsymbols instantiatedInlines;
+
     private OutBuffer defines;  // collect all the #define lines here
 
 

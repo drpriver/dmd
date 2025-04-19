@@ -2691,7 +2691,7 @@ final class CParser(AST) : Parser!AST
             }
         }
 
-        specifier.scw = scw;
+        specifier.scw |= scw;
         specifier.mod = mod;
 
         // Convert TKW bits to type t
@@ -5256,6 +5256,10 @@ final class CParser(AST) : Parser!AST
             fd.inlining = PINLINE.never;
         else if (specifier.scw & SCW.xinline)
             fd.inlining = PINLINE.always;
+
+        // Possible to be PINLINE.never but also cInline
+        if (specifier.scw & SCW.xinline)
+            fd.cInline = true;
     }
 
     /***********************
